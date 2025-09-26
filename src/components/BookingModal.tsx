@@ -26,6 +26,10 @@ import {
   Clock
 } from "lucide-react";
 import { useState } from "react";
+import { useBooking } from "@/contexts/BookingContext";
+import { useUser } from "@/contexts/UserContext";
+import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
 interface BookingModalProps {
   isOpen: boolean;
@@ -50,6 +54,12 @@ const BookingModal = ({ isOpen, onClose, apartment }: BookingModalProps) => {
   const [checkIn, setCheckIn] = useState("");
   const [checkOut, setCheckOut] = useState("");
   const [guests, setGuests] = useState(1);
+  const [isBooking, setIsBooking] = useState(false);
+  
+  const { createBooking } = useBooking();
+  const { user, isAuthenticated } = useUser();
+  const { toast } = useToast();
+  const navigate = useNavigate();
   
   const nights = checkIn && checkOut ? 
     Math.ceil((new Date(checkOut).getTime() - new Date(checkIn).getTime()) / (1000 * 60 * 60 * 24)) : 0;
@@ -57,6 +67,61 @@ const BookingModal = ({ isOpen, onClose, apartment }: BookingModalProps) => {
   const cleaningFee = 25;
   const serviceFee = Math.round(totalPrice * 0.12);
   const finalTotal = totalPrice + cleaningFee + serviceFee;
+
+  const handleBooking = async () => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Please sign in",
+        description: "You need to be logged in to make a booking.",
+        variant: "destructive",
+      });
+      navigate("/login");
+      return;
+    }
+
+    if (!checkIn || !checkOut) {
+      toast({
+        title: "Please select dates",
+        description: "Check-in and check-out dates are required.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsBooking(true);
+    
+    try {
+      // Simulate booking process
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      createBooking({
+        apartmentId: apartment.id,
+        apartment,
+        userId: user!.id,
+        checkIn,
+        checkOut,
+        guests,
+        totalPrice: finalTotal,
+        status: 'confirmed'
+      });
+
+      toast({
+        title: "Booking confirmed!",
+        description: `Your stay at ${apartment.title} has been booked successfully.`,
+      });
+      
+      onClose();
+      navigate("/dashboard");
+    } catch (error) {
+      toast({
+        title: "Booking failed",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsBooking(false);
+    }
+  };
 
   const amenityIcons = {
     wifi: <Wifi className="h-4 w-4" />,
@@ -233,10 +298,11 @@ const BookingModal = ({ isOpen, onClose, apartment }: BookingModalProps) => {
                   variant="default" 
                   size="lg" 
                   className="w-full"
-                  disabled={!checkIn || !checkOut}
+                  disabled={!checkIn || !checkOut || isBooking}
+                  onClick={handleBooking}
                 >
                   <CreditCard className="h-4 w-4 mr-2" />
-                  {nights > 0 ? `Book Now - $${finalTotal}` : 'Select Dates'}
+                  {isBooking ? 'Processing...' : nights > 0 ? `Book Now - $${finalTotal}` : 'Select Dates'}
                 </Button>
                 
                 <Button variant="outline" size="sm" className="w-full">

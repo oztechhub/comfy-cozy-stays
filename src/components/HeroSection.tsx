@@ -4,6 +4,16 @@ import { Calendar, MapPin, Users, Search } from "lucide-react";
 import heroImage from "@/assets/hero-apartment.jpg";
 
 const HeroSection = () => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [location, setLocation] = useState('');
+  const navigate = useNavigate();
+
+  const handleSearch = () => {
+    const params = new URLSearchParams();
+    if (searchQuery) params.set('q', searchQuery);
+    if (location) params.set('location', location);
+    navigate(`/search?${params.toString()}`);
+  };
   return (
     <section className="relative min-h-[70vh] flex items-center justify-center overflow-hidden">
       {/* Background Image with Overlay */}
